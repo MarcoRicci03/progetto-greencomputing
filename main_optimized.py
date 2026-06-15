@@ -35,7 +35,6 @@ tracker = OfflineEmissionsTracker(
     output_dir=".",
 )
 
-start_time = time.time()
 tracker.start()
 
 results = run_pipeline_on_all_datasets(
@@ -47,7 +46,6 @@ results = run_pipeline_on_all_datasets(
 )
 
 tracker.stop()
-elapsed = time.time() - start_time
-print(f"Total time: {elapsed:.2f} seconds")
 
 save_results(results, OUTPUT_CSV)
+print("Training completato! I consumi e la durata sono salvati in 'emissions_optimized.csv'.")
