@@ -16,7 +16,8 @@ calc_mcc <- function(actual, predicted) {
   return((tp * tn - fp * fn) / denom)
 }
 
-dataset_dir <- "/progetto/five_EHRs_public_datasets/"
+# dataset_dir <- "/progetto/five_EHRs_public_datasets/"
+dataset_dir <- "five_EHRs_public_datasets/"
 csv_files <- list.files(dataset_dir, pattern = "\\.csv$", full.names = TRUE)
 
 all_results <- list()
@@ -78,8 +79,8 @@ total_time <- elapsed$toc - elapsed$tic
 cat(sprintf("\nTotal time: %.2f seconds\n", total_time))
 
 # Salva risultati
-results_dir <- "/progetto/results"
-if (!dir.exists(results_dir)) dir.create(results_dir)
+results_dir <- "results"
+if (!dir.exists(results_dir)) dir.create(results_dir, recursive = TRUE)
 
 results_df <- do.call(rbind, all_results)
 write.csv(results_df, file.path(results_dir, "r_results.csv"), row.names = FALSE)

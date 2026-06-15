@@ -13,6 +13,7 @@ green-computing-project/
 │   └── r_results.csv
 ├── main_base.py                 # Script 1: baseline Python (RandomForest, 100 alberi)
 ├── main_optimized.py            # Script 2: Python ottimizzato (30 alberi, max_depth=5, n_jobs=-1)
+├── pipeline_utils.py            # Modulo condiviso: caricamento dati, validazione, hold-out
 ├── main_r.R                     # Script 3: versione R ottimizzata (eseguita via Docker)
 ├── main_r_wrapper.py            # Wrapper Python per misurare le emissioni dello script R
 ├── plot_results.py              # Genera i grafici comparativi per il report

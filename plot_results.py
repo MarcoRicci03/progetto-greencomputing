@@ -4,6 +4,14 @@ import matplotlib.ticker as mticker
 import numpy as np
 import os
 
+DATASET_NAME_MAP = {
+    "10_7717_peerj_5665_dataYM2018_neuroblastoma": "Neuroblastoma",
+    "dataset_Belgrade2021_pediatric_brain_tumor_plos_one_0259095_cleaned": "Pediatric Brain Tumor",
+    "dataset_Taipei2018_colorectal_cancer_EHRs_plos_one_0200893_final_cleaned": "Colorectal Cancer",
+    "journal.pone.0148699_S1_Text_Sepsis_SIRS_EDITED": "Sepsis / SIRS",
+    "journal.pone.0158570_S2File_depression_heart_failure": "Depression / Heart Failure",
+}
+
 # --- Load results ---
 base_res  = pd.read_csv("results/base_results.csv")
 optim_res = pd.read_csv("results/optimized_results.csv")
@@ -17,21 +25,23 @@ def load_emissions(path):
             "energy_wh":  float(row["energy_consumed"]) * 1000,  # kWh -> Wh
             "co2_g":      float(row["emissions"]) * 1000,         # kg  -> g
             "duration_s": float(row["duration"]),
+            "cpu_power_w": float(row["cpu_power"]),
         }
     except FileNotFoundError:
         print(f"Warning: {path} not found — using zeros.")
-        return {"energy_wh": 0, "co2_g": 0, "duration_s": 0}
+        return {"energy_wh": 0, "co2_g": 0, "duration_s": 0, "cpu_power_w": 0}
 
 base_emis  = load_emissions("emissions_base.csv")
 optim_emis = load_emissions("emissions_ottimizzato.csv")
 r_emis     = load_emissions("emissions_r.csv")
 
-labels = ["Base (Py)", "Optimized (Py)", "R (Docker)"]
+labels = ["Base (Py)", "Optimized (Py)", "R"]
 colors = ["#e05c5c", "#4caf82", "#2196F3"]
 
-energia = [base_emis["energy_wh"],  optim_emis["energy_wh"],  r_emis["energy_wh"]]
-co2     = [base_emis["co2_g"],      optim_emis["co2_g"],      r_emis["co2_g"]]
-durata  = [base_emis["duration_s"], optim_emis["duration_s"], r_emis["duration_s"]]
+energia     = [base_emis["energy_wh"],    optim_emis["energy_wh"],    r_emis["energy_wh"]]
+co2         = [base_emis["co2_g"],        optim_emis["co2_g"],        r_emis["co2_g"]]
+durata      = [base_emis["duration_s"],   optim_emis["duration_s"],   r_emis["duration_s"]]
+power       = [base_emis["cpu_power_w"],  optim_emis["cpu_power_w"],  r_emis["cpu_power_w"]]
 
 # --- MCC per dataset (mean ± std) ---
 # Merge on dataset name for aligned comparison
@@ -41,15 +51,16 @@ mcc_merged = (
     .merge(r_res.rename(columns={"mean_mcc": "mcc_r", "std_mcc": "std_r"}), on="dataset")
 )
 # Shorten dataset names for readability
-mcc_merged["short_name"] = mcc_merged["dataset"].str[:30]
+mcc_merged["short_name"] = mcc_merged["dataset"].map(DATASET_NAME_MAP).fillna(mcc_merged["dataset"])
 
 # --- Layout ---
-fig = plt.figure(figsize=(16, 10))
+fig = plt.figure(figsize=(20, 10))
 fig.suptitle("Green Computing — Performance & Emissions Comparison", fontsize=16, fontweight="bold", y=0.99)
 
-ax1 = plt.subplot(2, 3, 1)
-ax2 = plt.subplot(2, 3, 2)
-ax3 = plt.subplot(2, 3, 3)
+ax1 = plt.subplot(2, 4, 1)
+ax2 = plt.subplot(2, 4, 2)
+ax3 = plt.subplot(2, 4, 3)
+ax5 = plt.subplot(2, 4, 4)
 ax4 = plt.subplot(2, 1, 2)
 
 # --- Bar charts for emissions ---
@@ -71,6 +82,7 @@ def bar_chart(ax, vals, title, unit, fmt):
 bar_chart(ax1, energia, "Energy (Wh)",     "Wh",  "{:.4f}")
 bar_chart(ax2, co2,     "CO₂-eq (g)",      "g",   "{:.6f}")
 bar_chart(ax3, durata,  "Total Time (sec)","sec",  "{:.1f}")
+bar_chart(ax5, power,   "CPU Power (W)",   "W",   "{:.1f}")
 
 # --- MCC per dataset grouped bar chart with error bars ---
 datasets = mcc_merged["short_name"].tolist()
@@ -84,14 +96,14 @@ bars_o = ax4.bar(x,          mcc_merged["mcc_optim"], width, yerr=mcc_merged["st
                  label="Optimized (Py)", color=colors[1], alpha=0.85,
                  capsize=4, error_kw={"elinewidth":1.2, "ecolor":"#555"}, edgecolor="black", linewidth=0.6)
 bars_r = ax4.bar(x + width,  mcc_merged["mcc_r"],     width, yerr=mcc_merged["std_r"],
-                 label="R (Docker)",     color=colors[2], alpha=0.85,
+                 label="R",     color=colors[2], alpha=0.85,
                  capsize=4, error_kw={"elinewidth":1.2, "ecolor":"#555"}, edgecolor="black", linewidth=0.6)
 
 ax4.set_title("MCC per Dataset — Mean ± Std over 100 Repeated Hold-Out Runs",
               fontsize=12, fontweight="bold")
 ax4.set_ylabel("Matthews Correlation Coefficient (MCC)", fontsize=10)
 ax4.set_xticks(x)
-ax4.set_xticklabels(datasets, fontsize=7, rotation=30, ha="right")
+ax4.set_xticklabels(datasets, fontsize=7, ha="right")
 ax4.set_ylim(0, 1.15)
 ax4.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 ax4.spines[["top", "right"]].set_visible(False)
