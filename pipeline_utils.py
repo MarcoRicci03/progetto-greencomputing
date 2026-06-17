@@ -54,39 +54,33 @@ def run_repeated_holdout(
         mccs.append(matthews_corrcoef(y_test, y_pred))
     return mccs
 
+def run_pipeline_on_dataset(
+        csv_path: str,
+        model_factory,
+        preprocess_fn=None,
+        n_runs: int = 100,
+        test_size: float = 0.2,
+) -> dict:
+    """Run the pipeline on a single dataset and return the results."""
+    dataset_name = os.path.basename(csv_path).replace(".csv", "")
+    print(f"Processing dataset: {dataset_name}")
 
-def run_pipeline_on_all_datasets(
-    dataset_dir: str,
-    model_factory,
-    preprocess_fn=None,
-    n_runs: int = 100,
-    test_size: float = 0.2,
-) -> list[dict]:
-    dataset_files = get_dataset_files(dataset_dir)
-    all_results = []
+    X, y = load_dataset(csv_path)
+    y = encode_target_if_needed(y)
 
-    for csv_path in dataset_files:
-        dataset_name = os.path.basename(csv_path).replace(".csv", "")
-        print(f"Processing dataset: {dataset_name}")
+    if preprocess_fn is not None:
+        X = preprocess_fn(X)
 
-        X, y = load_dataset(csv_path)
-        y = encode_target_if_needed(y)
+    mccs = run_repeated_holdout(X, y, model_factory, n_runs, test_size)
+    mean_mcc = np.mean(mccs)
+    std_mcc = np.std(mccs)
 
-        if preprocess_fn is not None:
-            X = preprocess_fn(X)
-
-        mccs = run_repeated_holdout(X, y, model_factory, n_runs, test_size)
-
-        mean_mcc = np.mean(mccs)
-        std_mcc = np.std(mccs)
-        all_results.append({
-            "dataset": dataset_name,
-            "mean_mcc": mean_mcc,
-            "std_mcc": std_mcc,
-        })
-        print(f"{dataset_name}: MCC = {mean_mcc:.4f} ± {std_mcc:.4f}")
-
-    return all_results
+    print(f"{dataset_name}: MCC = {mean_mcc:.4f} ± {std_mcc:.4f}")
+    return {
+        "dataset": dataset_name,
+        "mean_mcc": mean_mcc,
+        "std_mcc": std_mcc,
+    }
 
 
 def save_results(results: list[dict], output_csv: str) -> None:

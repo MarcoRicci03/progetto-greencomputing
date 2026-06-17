@@ -1,12 +1,13 @@
+import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import VarianceThreshold
 from codecarbon import OfflineEmissionsTracker
 
-from pipeline_utils import run_pipeline_on_all_datasets, save_results
+from pipeline_utils import get_dataset_files, run_pipeline_on_dataset, save_results
 
 # ── Configuration ──────────────────────────────────────────────────────
 DATASET_DIR = "five_EHRs_public_datasets/"
-OUTPUT_CSV = "results/optimized_results.csv"
+RESULTS_BASE_DIR = "results/"
 N_RUNS = 100
 TEST_SIZE = 0.2
 
@@ -16,7 +17,6 @@ def optimized_model(i: int) -> RandomForestClassifier:
     return RandomForestClassifier(
         n_estimators=30,
         max_depth=5,
-        n_jobs=-1,
         random_state=i,
     )
 
@@ -28,24 +28,29 @@ def remove_zero_variance(X):
 
 
 # ── Main execution ────────────────────────────────────────────────────
-tracker = OfflineEmissionsTracker(
-    country_iso_code="ITA",
-    project_name="green-computing-optimized",
-    output_file="emissions_ottimizzato.csv",
-    output_dir=".",
-)
+if __name__ == "__main__":
+    dataset_files = get_dataset_files(DATASET_DIR)
 
-tracker.start()
+    for csv_path in dataset_files:
+        dataset_name = os.path.basename(csv_path).replace(".csv", "")
+        dataset_results_dir = os.path.join(RESULTS_BASE_DIR, dataset_name)
+        os.makedirs(dataset_results_dir, exist_ok=True)
+        training_results_csv = os.path.join(dataset_results_dir, "training_results_optimized.csv")
+        tracker = OfflineEmissionsTracker(
+            country_iso_code="ITA",
+            output_file="emissions_optimized.csv",
+            output_dir=dataset_results_dir,
+        )
 
-results = run_pipeline_on_all_datasets(
-    dataset_dir=DATASET_DIR,
-    model_factory=optimized_model,
-    preprocess_fn=remove_zero_variance,
-    n_runs=N_RUNS,
-    test_size=TEST_SIZE,
-)
+        tracker.start()
 
-tracker.stop()
+        result = run_pipeline_on_dataset(
+            csv_path=csv_path,
+            model_factory=optimized_model,
+            n_runs=N_RUNS,
+            test_size=TEST_SIZE,
+            preprocess_fn=remove_zero_variance,
+        )
 
-save_results(results, OUTPUT_CSV)
-print("Training completato! I consumi e la durata sono salvati in 'emissions_optimized.csv'.")
+        tracker.stop()
+        save_results([result], training_results_csv)
