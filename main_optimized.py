@@ -38,6 +38,7 @@ if __name__ == "__main__":
         training_results_csv = os.path.join(dataset_results_dir, "training_results_optimized.csv")
         tracker = OfflineEmissionsTracker(
             country_iso_code="ITA",
+            project_name=f"green-computing-py-optimized-{dataset_name}",
             output_file="emissions_optimized.csv",
             output_dir=dataset_results_dir,
         )

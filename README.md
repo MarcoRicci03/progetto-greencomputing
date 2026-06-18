@@ -1,113 +1,27 @@
-# Green Computing Project
+# Green Computing Final Project
 
-Questo progetto implementa una pipeline di classificazione binaria su dati derivati da cartelle cliniche elettroniche (EHR), misurando le performance e il consumo energetico attraverso [CodeCarbon](https://github.com/mlco2/codecarbon). La pipeline viene eseguita su **tutti e 5 i dataset** forniti.
+## Overview
+This repository contains the software code for the Green Computing final project for the Università di Milano-Bicocca. The goal of the project is to perform binary classification on tabular data derived from electronic health records (EHRs) while measuring and optimizing the project's environmental impact.
 
-## Struttura del Progetto
+According to the project instructions, three distinct approaches are implemented and compared:
+* A baseline Python script performing binary classification.
+* An optimized Python script applying energy-saving strategies to consume less energy, CO2, and time.
+* An R version of the script (`main_r.R`) to compare execution time, CO2-eq consumption, and energy use across different programming languages.
 
-```
-green-computing-project/
-├── five_EHRs_public_datasets/   # I 5 dataset CSV (target = ultima colonna)
-├── results/                     # Output: MCC e metriche per ogni dataset
-│   ├── base_results.csv
-│   ├── optimized_results.csv
-│   └── r_results.csv
-├── main_base.py                 # Script 1: baseline Python (RandomForest, 100 alberi)
-├── main_optimized.py            # Script 2: Python ottimizzato (30 alberi, max_depth=5, n_jobs=-1)
-├── pipeline_utils.py            # Modulo condiviso: caricamento dati, validazione, hold-out
-├── main_r.R                     # Script 3: versione R ottimizzata (eseguita via Docker)
-├── main_r_wrapper.py            # Wrapper Python per misurare le emissioni dello script R
-├── plot_results.py              # Genera i grafici comparativi per il report
-├── Dockerfile                   # Immagine Docker per eseguire main_r.R
-├── emissions_base.csv           # Output CodeCarbon: script baseline
-├── emissions_ottimizzato.csv    # Output CodeCarbon: script ottimizzato
-├── emissions_r.csv              # Output CodeCarbon: script R
-├── run_base.sh                  # Esegue main_base.py
-├── run_optimized.sh             # Esegue main_optimized.py
-├── run_r.sh                     # Builda il container Docker ed esegue main_r.R
-└── run_all.sh                   # Esegue tutti e tre gli script in sequenza
-```
+Classification performance is measured using the Matthews correlation coefficient (MCC) over a repeated hold-out validation with 100 iterations. The energy consumption (in Wh), CO2-eq emissions (in grams), and execution time (in seconds) are tracked using CodeCarbon.
 
-## Requisiti
+## Repository Structure
+* **`five_EHRs_public_datasets/`**: Directory containing the 5 tabular EHR datasets in CSV format (including neuroblastoma, pediatric brain tumors, colorectal cancer, sepsis, and depression/heart failure). The target feature to predict is always the last column on the right.
+* **`main_base.py`**: The baseline Python script for the classification task.
+* **`main_optimized.py`**: The energy-optimized Python script for the classification task.
+* **`main_r.R`**: The R language implementation of the classification task.
+* **`main_r_wrapper.py`**: A Python wrapper designed to track the R script's energy metrics using CodeCarbon.
+* **`pipeline_utils.py` & `plot_results.py`**: Utility scripts containing helper functions and code to generate results plots.
+* **Shell Scripts**: Scripts like `run_all.sh`, `run_base.sh`, `run_optimized.sh`, and `run_r.sh` are provided to automate the execution of the models.
+* **`output/` & `results/`**: Folders containing the evaluation metrics in CSV format and generated graphical comparisons (e.g., `duration_comparison.png`, `emissions_comparison.png`, `energy_comparison.png`, `training_mcc_comparison.png`).
+* **`.gitignore`**: Git exclusion rules.
 
-### Python
-- Python 3.9+
-- Dipendenze:
-
-```bash
-pip install scikit-learn codecarbon pandas numpy
-```
-
-### R (tramite Docker)
-- [Docker](https://www.docker.com/) installato e in esecuzione
-
-## Istruzioni per l'Esecuzione
-
-Prima di eseguire gli script Bash, assicurati che abbiano i permessi di esecuzione:
-
-```bash
-chmod +x run_*.sh
-```
-
-### Eseguire i Modelli Singolarmente
-
-- **Script 1 — Python Baseline:**
-  Avvia il modello non ottimizzato (`main_base.py`) su tutti e 5 i dataset:
-  ```bash
-  ./run_base.sh
-  ```
-
-- **Script 2 — Python Ottimizzato:**
-  Avvia il modello ottimizzato (`main_optimized.py`) su tutti e 5 i dataset:
-  ```bash
-  ./run_optimized.sh
-  ```
-
-- **Script 3 — R via Docker:**
-  Builda l'immagine Docker ed esegue `main_r.R` su tutti e 5 i dataset:
-  ```bash
-  ./run_r.sh
-  ```
-
-### Eseguire Tutto Insieme
-
-Per eseguire l'intera pipeline in sequenza automatica (Baseline → Ottimizzato → R):
-
-```bash
-./run_all.sh
-```
-
-### Generare i Grafici
-
-Dopo aver eseguito tutti gli script, genera i grafici comparativi per il report:
-
-```bash
-python plot_results.py
-```
-
-## Risultati
-
-Al termine delle esecuzioni, nella cartella `results/` troverai:
-
-| File | Contenuto |
-|------|-----------|
-| `base_results.csv` | MCC medio e std per ogni dataset — script baseline |
-| `optimized_results.csv` | MCC medio e std per ogni dataset — script ottimizzato |
-| `r_results.csv` | MCC medio e std per ogni dataset — script R |
-
-Nella root del progetto troverai inoltre i file `emissions_*.csv` generati da CodeCarbon con le misure di **Wh**, **CO₂-eq (grammi)** e **secondi** per ogni script.
-
-## Metodologia
-
-- **Classificatore**: RandomForest
-- **Validazione**: Repeated Hold-Out con 100 iterazioni (seed variabile `random_state=i`)
-- **Test size**: 20% del dataset ad ogni iterazione
-- **Metrica**: Matthews Correlation Coefficient (MCC)
-- **Misura energetica**: [CodeCarbon](https://github.com/mlco2/codecarbon) con `country_iso_code="ITA"`
-- **Dataset**: 5 dataset EHR pubblici in formato CSV — target sempre nell'ultima colonna
-
-## Ottimizzazioni applicate (Script 2 e 3)
-
-- Riduzione del numero di alberi: da 100 a 30 (`n_estimators=30`)
-- Limitazione della profondità massima: `max_depth=5`
-- Parallelizzazione su tutti i core disponibili: `n_jobs=-1`
-- Rimozione delle feature a varianza zero prima del loop (`VarianceThreshold`)
+## How to Run
+You can run the entire evaluation pipeline or individual scripts using the provided bash scripts:
+* Execute `./run_all.sh` to run the baseline, optimized, and R pipelines sequentially.
+* Run `./run_base.sh`, `./run_optimized.sh`, or `./run_r.sh` to execute a specific pipeline and track its respective CodeCarbon footprint.

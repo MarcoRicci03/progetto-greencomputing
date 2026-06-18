@@ -79,6 +79,10 @@ def load_emissions_results(root: Path) -> pd.DataFrame:
             dataset_dir = csv_path.parent.name
             df = pd.read_csv(csv_path)
             df.columns = [c.strip() for c in df.columns]
+            if "energy_consumed" in df.columns:
+                df["energy_consumed"] = df["energy_consumed"] * 1000
+            if "emissions" in df.columns:
+                df["emissions"] = df["emissions"] * 1000
             df["dataset_raw"] = dataset_dir
             df["dataset_label"] = df["dataset_raw"].map(prettify_dataset_name)
             df["variant"] = variant
@@ -130,8 +134,8 @@ def save_training_plot(training_df: pd.DataFrame):
 def save_emissions_plots(emissions_df: pd.DataFrame):
     metrics = [
         ("duration", "Duration (s)", "duration_comparison.png"),
-        ("energy_consumed", "Energy consumed (kWh)", "energy_comparison.png"),
-        ("emissions", "Emissions (kg CO2eq)", "emissions_comparison.png"),
+        ("energy_consumed", "Energy consumed (Wh)", "energy_comparison.png"),
+        ("emissions", "Emissions (g CO2eq)", "emissions_comparison.png"),
     ]
 
     for column, ylabel, filename in metrics:
